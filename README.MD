@@ -18,7 +18,7 @@ TempoPilot is a modern, AI-powered schedule management tool built with PyQt6. It
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-repo/tempopilot.git
+git clone https://github.com/ChaosTheProducer/TempoPilot
 cd tempopilot
 ```
 
@@ -29,13 +29,25 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### 3. Install dependencies
+### 3. Configure Deepseek API Key
+
+Open the existing `config.json` file in the root directory and edit the value of the `deepseek_api_key` field:
+
+```json
+{
+  "deepseek_api_key": "your-deepseek-api-key-here"
+}
+```
+
+This key is required to generate activity recommendations.
+
+### 4. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run the application
+### 5. Run the application
 
 ```bash
 python main.py
@@ -57,7 +69,7 @@ All dependencies are listed in [`requirements.txt`](./requirements.txt).
 ## 🧑‍💻 Team Members (Group 6 - JC3510 @ SCNU)
 
 * Yingjie Lei
-* Jiayu Ye
+* Yefei Pan
 * Ziyan Chen
 * Zishen He
 * Zirui Zhu
@@ -65,7 +77,7 @@ All dependencies are listed in [`requirements.txt`](./requirements.txt).
 
 ## 🌐 Resources
 
-* **Course**: JC3510 Intelligent Software Implementation
+* **Course**: JC3510 Software Engineering
 * **Institution**: South China Normal University, Aberdeen Institute of Data Science and Artificial Intelligence
 
 ## 📄 License
