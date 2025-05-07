@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>多模式路径规划系统</title>
+  <link rel="stylesheet" href="https://cache.amap.com/lbs/static/main1119.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    #container {
+      width: 100%;
+      height: 100vh;
+    }
+    .main-panel {
+      position: fixed;
+      left: -320px;
+      top: 20px;
+      bottom: 20px;
+      width: 360px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 0 12px 12px 0;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+      padding: 20px;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.9);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+    }
+    body:hover .main-panel {
+      left: 0;
+      background: rgba(255,255,255,0.8);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+    }
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+    body:hover .panel-content {
+      opacity: 1;
+    }
+    .route-input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+    .route-input:focus {
+      border-color: #1a73e8;
+      box-shadow: 0 2px 6px rgba(26,115,232,0.2);
+    }
+    .action-button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      margin-top: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .action-button:hover {
+      background: #1557b0;
+    }
+    .mode-switcher {
+      margin-bottom: 15px;
+    }
+    .mode-btn {
+      padding: 8px 15px;
+      margin: 0 3px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .mode-btn.active {
+      background: #1a73e8;
+      color: white;
+      transform: scale(1.05);
+    }
+  </style>
+
+  <!-- 高德地图安全配置 -->
+  <script>
+    window._AMapSecurityConfig = {
+      securityJsCode: "06e967f8aa3852e066e7248f4b946619"
+    };
+  </script>
+  <!-- 1. 先加载 AMap SDK -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=7d76ba7703b9e63c594950e416cb35fb&plugin=AMap.AutoComplete,AMap.PlaceSearch,AMap.Driving,AMap.Transfer,AMap.Walking"></script>
+</head>
+
+<body>
+  <div class="main-panel">
+    <div class="panel-content">
+      <input type="text" id="search-input" class="route-input" placeholder="搜索地点">
+      <button class="action-button" onclick="performSearch()">搜索</button>
+      <div id="search-results" style="margin: 15px 0;"></div>
+
+      <div class="mode-switcher">
+        <button class="mode-btn" id="driveBtn">驾车</button>
+        <button class="mode-btn" id="transitBtn">公交</button>
+        <button class="mode-btn" id="walkBtn">步行</button>
+      </div>
+      <input type="text" id="start-point" class="route-input" placeholder="起点">
+      <input type="text" id="end-point" class="route-input" placeholder="终点">
+      <button class="action-button" onclick="planRoute()">开始规划</button>
+      <div id="route-results" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <div id="container"></div>
+
+  <!-- 2. 把所有 AMap 依赖代码都放到 onload 里 -->
+  <script>
+    window.onload = () => {
+      // 地图初始化
+      const map = new AMap.Map('container', {
+        resizeEnable: true,
+        zoom: 13,
+        center: [116.397428, 39.90923]
+      });
+
+      // 路线服务
+      const driving = new AMap.Driving({ map, panel: 'route-results', autoFitView: true });
+      const transit = new AMap.Transfer({ map, panel: 'route-results', autoFitView: true });
+      const walking = new AMap.Walking({ map, panel: 'route-results', autoFitView: true });
+
+      let currentMode = 'drive';
+      function clearRoute() {
+        driving.clear(); transit.clear(); walking.clear();
+        document.getElementById('route-results').innerHTML = '';
+      }
+
+      window.switchMode = (mode) => {
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(mode + 'Btn').classList.add('active');
+        clearRoute();
+      };
+
+      // 第一次设为驾车
+      switchMode('drive');
+
+      window.navigateAMap = (origin, destination) => {
+        clearRoute();
+        const opts = [
+          { keyword: origin, city: '' },
+          { keyword: destination, city: '' }
+        ];
+        if (currentMode === 'drive')      driving.search(opts);
+        else if (currentMode === 'transit') transit.search(opts);
+        else if (currentMode === 'walk')    walking.search(opts);
+      };
+
+      // 搜索服务
+      const placeSearch = new AMap.PlaceSearch({
+        pageSize: 10,
+        pageIndex: 1,
+        city: '全国',
+        panel: 'search-results',
+        map,
+        autoFitView: true
+      });
+
+      // 自动完成
+      new AMap.AutoComplete({ input: 'search-input' });
+      new AMap.AutoComplete({ input: 'start-point' });
+      new AMap.AutoComplete({ input: 'end-point' });
+
+      // 绑定按钮
+      document.getElementById('driveBtn').onclick   = () => switchMode('drive');
+      document.getElementById('transitBtn').onclick = () => switchMode('transit');
+      document.getElementById('walkBtn').onclick    = () => switchMode('walk');
+
+      window.performSearch = () => {
+        const kw = document.getElementById('search-input').value;
+        if (!kw) return;
+        placeSearch.search(kw, (status, result) => {
+          if (status === 'complete') map.setFitView();
+        });
+      };
+
+      window.planRoute = () => {
+        const start = document.getElementById('start-point').value;
+        const end   = document.getElementById('end-point').value;
+        if (!start || !end) {
+          alert('请填写起点和终点');
+          return;
+        }
+        clearRoute();
+        const opts = [
+          { keyword: start, city: '' },
+          { keyword: end,   city: '' }
+        ];
+        if (currentMode === 'drive')      driving.search(opts);
+        else if (currentMode === 'transit') transit.search(opts);
+        else if (currentMode === 'walk')    walking.search(opts);
+      };
+
+      // 点击地图取起点
+      map.on('click', e => {
+        new AMap.Geocoder().getAddress(e.lnglat, (status, result) => {
+          if (status === 'complete') {
+            document.getElementById('start-point').value = result.regeocode.formattedAddress;
+          }
+        });
+      });
+
+      // 回车搜索
+      document.getElementById('search-input')
+        .addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+
+      // 面板自动展开/收起
+      let panelTimeout, TRIGGER_ZONE = 500, HIDE_DELAY = 0;
+      document.addEventListener('mousemove', e => {
+        const panel = document.querySelector('.main-panel');
+        if (e.clientX < TRIGGER_ZONE) {
+          clearTimeout(panelTimeout);
+          panel.style.left = '0';
+        } else if (e.clientX > window.innerWidth - TRIGGER_ZONE) {
+          panelTimeout = setTimeout(() => panel.style.left = '-320px', HIDE_DELAY);
+        }
+      });
+    };
+  </script>
+</body>
+</html>

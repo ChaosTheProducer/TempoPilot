@@ -1,0 +1,11 @@
+"PyQt6-Fluent-Widgets[full]" -i https://pypi.org/simple/
+PyQt6-Frameless-Window
+PyQt6
+PyQt6-WebEngine
+qfluentwidgets
+qframelesswindow
+pycountry
+pyqtdarktheme
+requests
+bs4
+openai
